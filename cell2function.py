@@ -55,16 +55,18 @@ class ParameterNames(ast.NodeVisitor):
     def visit_arg(self, node):
         self.paramnames.append(node.arg)
 
+def makefunction(name, cell):
+    namescanner = NameScanner()
+    namescanner.visit(ast.parse(cell))
+    out = ["def {name}({args}):".format(name=name,
+           args=", ".join(namescanner.read_before_defined))]
+    out.extend("    " + l for l in cell.splitlines())
+    out.append("    return " + ", ".join(namescanner.defined_in_scopes[1]))
+    return "\n".join(out)
+
 def load_ipython_extension(ip):
-    def makefunction(line, cell):
-        namescanner = NameScanner()
-        namescanner.visit(ast.parse(cell))
+    def cell2function(line, cell):
         func_name = line.strip().split()[0] if line.strip() else 'unnamed'
-        
-        out = ["def {name}({args})".format(name=func_name,
-               args=", ".join(namescanner.read_before_defined))]
-        out.extend("    " + l for l in cell.splitlines())
-        out.append("    return " + ", ".join(namescanner.defined_in_scopes[1]))
-        ip.set_next_input("\n".join(out))
+        ip.set_next_input(makefunction(func_name, cell))
     
     ip.register_magic_function(makefunction, magic_kind='cell')
