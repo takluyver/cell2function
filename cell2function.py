@@ -81,4 +81,4 @@ def load_ipython_extension(ip):
         func_name = line.strip().split()[0] if line.strip() else 'unnamed'
         ip.set_next_input(makefunction(func_name, cell))
     
-    ip.register_magic_function(makefunction, magic_kind='cell')
+    ip.register_magic_function(cell2function, magic_kind='cell')
