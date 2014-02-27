@@ -10,5 +10,5 @@ To use it, load the extension with ``%load_ext cell2function``, and then add
 ``%%cell2function`` at the top of cells you want to turn into functions. The new
 functions will appear in a new cell beneath.
 
-See `the demo notebook <nbviewer.ipython.org/github/takluyver/cell2function/blob/master/Cell2function demo.ipynb>`_
+See `the demo notebook <http://nbviewer.ipython.org/github/takluyver/cell2function/blob/master/Cell2function%20demo.ipynb>`_
 for more information.
