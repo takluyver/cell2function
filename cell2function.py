@@ -1,7 +1,13 @@
 # -*- coding: utf-8 -*-
 
 import ast
-import builtins
+import sys
+PY3 = sys.version_info[0] >= 3
+
+try:
+    import builtins  # Python 3
+except ImportError:
+    import __builtin__ as builtins  # Python 2
 
 class NameScanner(ast.NodeVisitor):
     """Check an AST for names defined in it, and names read before they are defined."""
@@ -52,8 +58,14 @@ class ParameterNames(ast.NodeVisitor):
         super(ParameterNames, self).__init__()
         self.paramnames = []
     
-    def visit_arg(self, node):
-        self.paramnames.append(node.arg)
+    # Parameters are stored differently in Python 2 and 3
+    if PY3:
+        def visit_arg(self, node):
+            self.paramnames.append(node.arg)
+    else:
+        def visit_Name(self, node):
+            if isinstance(node.ctx, ast.Param):
+                self.paramnames.append(node.id)
 
 def makefunction(name, cell):
     namescanner = NameScanner()
