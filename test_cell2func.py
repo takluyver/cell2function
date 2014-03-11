@@ -15,10 +15,11 @@ a = a - 3
 x * 2
 x += 1
 sum(d + [1])
+sysmod.version  # modules shouldn't become parameters.
 """
 
 def test_makefunction():
-    res = cell2function.makefunction('foobar', cell1)
+    res = cell2function.makefunction('foobar', cell1, user_ns={'sysmod': sys})
     tree = ast.parse(res)
     assert len(tree.body) == 2
 

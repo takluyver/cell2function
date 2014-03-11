@@ -2,6 +2,7 @@
 
 import ast
 import sys
+import types
 PY3 = sys.version_info[0] >= 3
 
 try:
@@ -11,18 +12,24 @@ except ImportError:
 
 class NameScanner(ast.NodeVisitor):
     """Check an AST for names defined in it, and names read before they are defined."""
-    def __init__(self):
+    def __init__(self, user_ns):
         super(NameScanner, self).__init__()
+        self.user_ns = user_ns
         self.read_before_defined = []
         self.defined_in_scopes = [list(builtins.__dict__), []]
     
     def visible(self, name):
         return any(name in defined for defined in self.defined_in_scopes)
 
+    def is_module(self, name):
+        """If 'name' is a module in user_ns, we don't want it to be a parameter."""
+        return isinstance(self.user_ns.get(name), types.ModuleType)
+
     def visit_Name(self, node):
         if isinstance(node.ctx, ast.Store):
             self.defined_in_scopes[-1].append(node.id)
-        elif isinstance(node.ctx, ast.Load) and not self.visible(node.id):
+        elif isinstance(node.ctx, ast.Load) and not self.visible(node.id) \
+                and not self.is_module(node.id):
             self.read_before_defined.append(node.id)
     
     def visit_Assign(self, node):
@@ -80,8 +87,8 @@ def uniq_stable(elems):
     seen = set()
     return [x for x in elems if x not in seen and not seen.add(x)]
 
-def makefunction(name, cell):
-    namescanner = NameScanner()
+def makefunction(name, cell, user_ns):
+    namescanner = NameScanner(user_ns=user_ns)
     namescanner.visit(ast.parse(cell))
     args = ", ".join(uniq_stable(namescanner.read_before_defined))
     out = ["def {name}({args}):".format(name=name, args=args)]
@@ -96,6 +103,6 @@ def makefunction(name, cell):
 def load_ipython_extension(ip):
     def cell2function(line, cell):
         func_name = line.strip().split()[0] if line.strip() else 'unnamed'
-        ip.set_next_input(makefunction(func_name, cell))
+        ip.set_next_input(makefunction(func_name, cell, ip.user_ns))
     
     ip.register_magic_function(cell2function, magic_kind='cell')
