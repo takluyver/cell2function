@@ -70,10 +70,14 @@ class ParameterNames(ast.NodeVisitor):
 def makefunction(name, cell):
     namescanner = NameScanner()
     namescanner.visit(ast.parse(cell))
-    out = ["def {name}({args}):".format(name=name,
-           args=", ".join(namescanner.read_before_defined))]
+    args = ", ".join(namescanner.read_before_defined)
+    out = ["def {name}({args}):".format(name=name, args=args)]
     out.extend("    " + l for l in cell.splitlines())
-    out.append("    return " + ", ".join(namescanner.defined_in_scopes[1]))
+    outnames = ", ".join(namescanner.defined_in_scopes[1])
+    out.append("    return " + outnames)
+    out.append("")
+    out.append("{outnames} = {name}({args})".format(outnames=outnames,
+                                   name=name, args=args))
     return "\n".join(out)
 
 def load_ipython_extension(ip):
