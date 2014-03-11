@@ -11,6 +11,8 @@ def subfunc(c=1, d=z):
     print(y)
     c * 2
 a = a*2
+a = a - 3
+x * 2
 x += 1
 sum(d + [1])
 """

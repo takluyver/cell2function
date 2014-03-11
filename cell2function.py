@@ -67,13 +67,26 @@ class ParameterNames(ast.NodeVisitor):
             if isinstance(node.ctx, ast.Param):
                 self.paramnames.append(node.id)
 
+# Copied from IPython.utils.data
+def uniq_stable(elems):
+    """uniq_stable(elems) -> list
+
+    Return from an iterable, a list of all the unique elements in the input,
+    but maintaining the order in which they first appear.
+
+    Note: All elements in the input must be hashable for this routine
+    to work, as it internally uses a set for efficiency reasons.
+    """
+    seen = set()
+    return [x for x in elems if x not in seen and not seen.add(x)]
+
 def makefunction(name, cell):
     namescanner = NameScanner()
     namescanner.visit(ast.parse(cell))
-    args = ", ".join(namescanner.read_before_defined)
+    args = ", ".join(uniq_stable(namescanner.read_before_defined))
     out = ["def {name}({args}):".format(name=name, args=args)]
     out.extend("    " + l for l in cell.splitlines())
-    outnames = ", ".join(namescanner.defined_in_scopes[1])
+    outnames = ", ".join(uniq_stable(namescanner.defined_in_scopes[1]))
     out.append("    return " + outnames)
     out.append("")
     out.append("{outnames} = {name}({args})".format(outnames=outnames,
