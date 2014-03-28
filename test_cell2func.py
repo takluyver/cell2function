@@ -2,6 +2,7 @@ import ast
 import sys
 PY3 = sys.version_info[0] >= 3
 
+from astcheck import assert_ast_like, mkarg, listmiddle
 import cell2function
 
 cell1 = """
@@ -18,30 +19,24 @@ sum(d + [1])
 sysmod.version  # modules shouldn't become parameters.
 """
 
+template = ast.Module(body=[
+    ast.FunctionDef(name="foobar", args=ast.arguments(args=[
+                mkarg(name) for name in ['z', 'y', 'a', 'x', 'd']
+    ]), body=listmiddle() + [
+        ast.Return(value=ast.Tuple(elts=
+            [ast.Name(id=n, ctx=ast.Load()) for n in ['b', 'subfunc', 'a', 'x']]
+        ))
+    ]),
+    ast.Assign(targets=[ast.Tuple(ctx=ast.Store(), names=[
+            ast.Name(id=id, ctx=ast.Store()) for id in ['b', 'subfunc', 'a', 'x']
+            ])],
+         value = ast.Call(func=ast.Name(id="foobar", ctx=ast.Load()),
+                          args=[
+              ast.Name(id=id, ctx=ast.Load()) for id in ['z', 'y', 'a', 'x', 'd']
+            ])
+        )
+])
+
 def test_makefunction():
     res = cell2function.makefunction('foobar', cell1, user_ns={'sysmod': sys})
-    tree = ast.parse(res)
-    assert len(tree.body) == 2
-
-    # Function definition
-    assert isinstance(tree.body[0], ast.FunctionDef)
-    funcdef = tree.body[0]
-    if PY3:
-        params = [a.arg for a in funcdef.args.args]
-    else:
-        params = [n.id for n in funcdef.args.args]
-    assert params == ['z', 'y', 'a', 'x', 'd']
-    assert isinstance(funcdef.body[-1], ast.Return)
-    assert isinstance(funcdef.body[-1].value, ast.Tuple)
-    retvals = [n.id for n in funcdef.body[-1].value.elts]
-    assert retvals == ['b', 'subfunc', 'a', 'x']
-
-    # Function call & assignment
-    assert isinstance(tree.body[1], ast.Assign)
-    assign = tree.body[1]
-    assert isinstance(assign.targets[0], ast.Tuple)
-    assigned = [n.id for n in assign.targets[0].elts]
-    assert assigned == ['b', 'subfunc', 'a', 'x']
-    assert isinstance(assign.value, ast.Call)
-    args = [n.id for n in assign.value.args]
-    assert args == ['z', 'y', 'a', 'x', 'd']
+    assert_ast_like(ast.parse(res), template)
